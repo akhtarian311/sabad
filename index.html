@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم مدیریت موارد قابل انتخاب و سفارشات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .item-card {
+            transition: all 0.3s ease;
+        }
+        
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .admin-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4f46e5;
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .admin-button:hover {
+            background-color: #4338ca;
+            transform: scale(1.05);
+        }
+        
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-upload input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            cursor: pointer;
+            display: block;
+        }
+        
+        /* Persian Datepicker Customization */
+        .datepicker-plot-area {
+            font-family: 'Vazirmatn', sans-serif !important;
+        }
+        
+        .date-time-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .date-input {
+            flex: 1;
+        }
+        
+        .time-input {
+            width: 100px;
+        }
+
+        /* Time slot styles */
+        .time-slot {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8fafc;
+        }
+
+        .time-slot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .time-slot-capacity {
+            font-weight: 500;
+            color: #4f46e5;
+        }
+
+        .time-slot-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- دکمه مدیریت -->
+    <div id="adminButton" class="admin-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-10 text-center">
+            <h1 class="text-3xl font-bold text-indigo-800 mb-2">سیستم مدیریت موارد قابل انتخاب</h1>
+            <p class="text-gray-600">انتخاب موارد با محدودیت ظرفیت و زمان‌بندی ثبت‌نام</p>
+            
+            <!-- پیام مناسبتی -->
+            <div id="eventMessage" class="mt-4 mx-auto max-w-2xl bg-blue-100 text-blue-800 p-4 rounded-lg">
+                به مناسبت عید سعید فطر، ۲۰٪ تخفیف ویژه برای تمامی دوره‌ها در نظر گرفته شده است.
+            </div>
+        </header>
+
+        <!-- فرم ورود مدیر -->
+        <div id="adminLogin" class="bg-white rounded-lg shadow-md p-6 mb-8 max-w-md mx-auto hidden">
+            <h2 class="text-xl font-bold text-indigo-700 mb-4">ورود به پنل مدیریت</h2>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="adminUsername">نام کاربری</label>
+                <input type="text" id="adminUsername" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="نام کاربری را وارد کنید">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="adminPassword">رمز عبور</label>
+                <input type="password" id="adminPassword" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="رمز عبور را وارد کنید">
+            </div>
+            <button id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                ورود
+            </button>
+            <p id="loginError" class="text-red-500 mt-2 text-center hidden">نام کاربری یا رمز عبور اشتباه است</p>
+        </div>
+
+        <!-- پنل مدیریت -->
+        <div id="adminPanel" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-indigo-700">پنل مدیریت</h2>
+                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-4 rounded-lg transition duration-300">
+                    خروج
+                </button>
+            </div>
+            
+            <!-- بخش آپلود فایل اکسل -->
+            <div class="mb-8 p-4 bg-gray-50 rounded-lg">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">آپلود فایل اکسل کاربران مجاز</h3>
+                <p class="text-gray-600 mb-4">فایل اکسل باید شامل ستون‌های "نام"، "نام خانوادگی"، "کد ملی" و "شماره همراه" باشد.</p>
+                
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="file-upload">
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                            انتخاب فایل اکسل
+                        </button>
+                        <input type="file" id="excelFile" accept=".xlsx, .xls" />
+                    </div>
+                    
+                    <button id="uploadExcel" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        آپلود و بارگذاری
+                    </button>
+                </div>
+                
+                <div id="excelStatus" class="mt-4 hidden">
+                    <div class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>در حال پردازش فایل...</span>
+                    </div>
+                </div>
+                
+                <div id="excelResult" class="mt-4 hidden">
+                    <div class="p-3 bg-green-100 text-green-700 rounded-md">
+                        <span id="excelResultText"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- لیست کاربران مجاز -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">لیست کاربران مجاز</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-indigo-100">
+                            <tr>
+                                <th class="py-3 px-4 text-right">ردیف</th>
+                                <th class="py-3 px-4 text-right">نام</th>
+                                <th class="py-3 px-4 text-right">نام خانوادگی</th>
+                                <th class="py-3 px-4 text-right">کد ملی</th>
+                                <th class="py-3 px-4 text-right">شماره همراه</th>
+                                <th class="py-3 px-4 text-right">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="authorizedUsersList">
+                            <!-- کاربران مجاز اینجا اضافه می‌شوند -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 flex justify-between items-center">
+                    <div>
+                        <span id="authorizedUsersCount" class="text-gray-600">0 کاربر مجاز</span>
+                    </div>
+                    <button id="clearAuthorizedUsers" class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-4 rounded-lg transition duration-300">
+                        حذف همه
+                    </button>
+                </div>
+            </div>
+            
+            <!-- محتوای پنل مدیریت -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">افزودن مورد جدید</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2" for="itemName">عنوان مورد</label>
+                        <input type="text" id="itemName" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="عنوان مورد را وارد کنید">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2" for="itemLimit">حداکثر ظرفیت کل</label>
+                        <input type="number" id="itemLimit" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="حداکثر ظرفیت کل را وارد کنید" min="1">
+                    </div>
+                </div>
+                
+                <!-- زمان‌بندی ارائه -->
+                <div class="mt-4">
+                    <label class="block text-gray-700 mb-2">زمان‌بندی ارائه</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2 text-sm">از تاریخ و ساعت</label>
+                            <div class="date-time-container">
+                                <input type="text" id="startDate" class="date-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="تاریخ شروع" readonly>
+                                <input type="time" id="startTime" class="time-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2 text-sm">تا تاریخ و ساعت</label>
+                            <div class="date-time-container">
+                                <input type="text" id="endDate" class="date-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="تاریخ پایان" readonly>
+                                <input type="time" id="endTime" class="time-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- بازه تحویل -->
+                <div class="mt-4">
+                    <label class="block text-gray-700 mb-2">بازه زمانی تحویل</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2 text-sm">فاصله زمانی تحویل (دقیقه)</label>
+                            <select id="deliveryInterval" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="0">بدون بازه زمانی</option>
+                                <option value="15">هر 15 دقیقه</option>
+                                <option value="30">هر 30 دقیقه</option>
+                                <option value="60">هر 1 ساعت</option>
+                                <option value="120">هر 2 ساعت</option>
+                                <option value="180">هر 3 ساعت</option>
+                                <option value="240">هر 4 ساعت</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2 text-sm">ظرفیت هر بازه زمانی</label>
+                            <div class="flex items-center">
+                                <select id="capacityDistributionType" class="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ml-2">
+                                    <option value="auto">توزیع خودکار</option>
+                                    <option value="manual">تعیین دستی</option>
+                                </select>
+                                <input type="number" id="slotCapacity" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="ظرفیت هر بازه" min="1" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- پیش‌نمایش بازه‌های زمانی -->
+                <div id="timeSlotPreviewContainer" class="mt-4 hidden">
+                    <label class="block text-gray-700 mb-2">پیش‌نمایش بازه‌های زمانی</label>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-medium">تعداد کل بازه‌های زمانی: <span id="totalSlots" class="text-indigo-600">0</span></span>
+                            <span class="font-medium">ظرفیت هر بازه: <span id="slotCapacityPreview" class="text-indigo-600">0</span></span>
+                        </div>
+                        <div id="timeSlotsList" class="max-h-60 overflow-y-auto">
+                            <!-- بازه‌های زمانی اینجا نمایش داده می‌شوند -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-gray-700 mb-2" for="itemDescription">توضیحات</label>
+                    <textarea id="itemDescription" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="2" placeholder="توضیحات مورد را وارد کنید"></textarea>
+                </div>
+                <div class="mt-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="requireValidation" class="form-checkbox h-5 w-5 text-indigo-600">
+                        <span class="ml-2 text-gray-700">نیاز به اعتبارسنجی کد ملی و شماره همراه</span>
+                    </label>
+                </div>
+                <button id="addItem" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                    افزودن مورد
+                </button>
+            </div>
+            
+            <div class="mt-8">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">لیست موارد</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-indigo-100">
+                            <tr>
+                                <th class="py-3 px-4 text-right">عنوان</th>
+                                <th class="py-3 px-4 text-right">توضیحات</th>
+                                <th class="py-3 px-4 text-right">حداکثر ظرفیت</th>
+                                <th class="py-3 px-4 text-right">ثبت‌نام‌های فعلی</th>
+                                <th class="py-3 px-4 text-right">زمان ارائه</th>
+                                <th class="py-3 px-4 text-right">بازه تحویل</th>
+                                <th class="py-3 px-4 text-right">اعتبارسنجی</th>
+                                <th class="py-3 px-4 text-right">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminItemsList">
+                            <!-- موارد اینجا اضافه می‌شوند -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-8">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">لیست ثبت نام‌ها</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-indigo-100">
+                            <tr>
+                                <th class="py-3 px-4 text-right">نام</th>
+                                <th class="py-3 px-4 text-right">نام خانوادگی</th>
+                                <th class="py-3 px-4 text-right">کد ملی</th>
+                                <th class="py-3 px-4 text-right">شماره تماس</th>
+                                <th class="py-3 px-4 text-right">مورد انتخابی</th>
+                                <th class="py-3 px-4 text-right">بازه زمانی</th>
+                                <th class="py-3 px-4 text-right">تاریخ ثبت نام</th>
+                                <th class="py-3 px-4 text-right">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registrationsList">
+                            <!-- ثبت نام‌ها اینجا اضافه می‌شوند -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- بخش پشتیبان‌گیری و بازیابی -->
+            <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                <h3 class="text-lg font-bold text-indigo-700 mb-4">پشتیبان‌گیری و بازیابی اطلاعات</h3>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <button id="exportData" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        دانلود فایل پشتیبان
+                    </button>
+                    
+                    <div class="file-upload">
+                        <button class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                            انتخاب فایل پشتیبان
+                        </button>
+                        <input type="file" id="importFile" accept=".json" />
+                    </div>
+                    
+                    <button id="importData" class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        بازیابی از فایل پشتیبان
+                    </button>
+                </div>
+                <div id="backupStatus" class="mt-4 hidden">
+                    <div class="p-3 bg-green-100 text-green-700 rounded-md">
+                        <span id="backupStatusText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نمای کاربر -->
+        <div class="customer-view">
+            <h2 class="text-2xl font-bold text-indigo-700 mb-6">موارد قابل انتخاب</h2>
+            <div id="itemsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- موارد اینجا اضافه می‌شوند -->
+            </div>
+        </div>
+
+        <!-- مودال سفارش -->
+        <div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 id="modalTitle" class="text-xl font-bold text-indigo-700 mb-4">ثبت انتخاب</h3>
+                <div id="modalContent" class="mb-4">
+                    <!-- محتوای مودال -->
+                </div>
+                <div class="flex justify-between">
+                    <button id="confirmOrder" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        تایید انتخاب
+                    </button>
+                    <button id="closeModal" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300">
+                        انصراف
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- مودال نمایش خطا -->
+        <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 class="text-xl font-bold text-red-600 mb-4">خطا</h3>
+                <div id="errorContent" class="mb-6 text-gray-700">
+                    <!-- محتوای خطا -->
+                </div>
+                <div class="flex justify-center">
+                    <button id="closeErrorModal" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        متوجه شدم
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- مودال نمایش موفقیت -->
+        <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 class="text-xl font-bold text-green-600 mb-4">عملیات موفق</h3>
+                <div id="successContent" class="mb-6 text-gray-700">
+                    <!-- محتوای پیام موفقیت -->
+                </div>
+                <div class="flex justify-center">
+                    <button id="closeSuccessModal" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                        متوجه شدم
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- مودال انتخاب بازه زمانی -->
+        <div id="timeSlotModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 class="text-xl font-bold text-indigo-700 mb-4">انتخاب بازه زمانی تحویل</h3>
+                <div id="timeSlotModalContent" class="mb-4 max-h-80 overflow-y-auto">
+                    <!-- بازه‌های زمانی اینجا نمایش داده می‌شوند -->
+                </div>
+                <div class="flex justify-between">
+                    <button id="confirmTimeSlot" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300" disabled>
+                        تایید بازه زمانی
+                    </button>
+                    <button id="closeTimeSlotModal" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-300">
+                        انصراف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // اطلاعات مدیر
+            const adminCredentials = {
+                username: "admin",
+                password: "admin123"
+            };
+
+            // متغیرهای عمومی
+            let isLoggedIn = false;
+            
+            // آرایه برای نگهداری موارد - بارگذاری از localStorage یا استفاده از مقادیر پیش‌فرض
+            let items = loadFromLocalStorage('items') || [
+                {
+                    id: 1,
+                    name: "دوره برنامه‌نویسی پیشرفته",
+                    description: "دوره آموزشی برنامه‌نویسی پیشرفته به مدت ۳ ماه",
+                    limit: 20,
+                    registered: 5,
+                    requireValidation: false,
+                    startDate: "1402/06/01",
+                    startTime: "09:00",
+                    endDate: "1402/09/01",
+                    endTime: "17:00",
+                    deliveryInterval: 0,
+                    capacityDistributionType: "auto",
+                    slotCapacity: 0,
+                    timeSlots: []
+                },
+                {
+                    id: 2,
+                    name: "کارگاه طراحی گرافیک",
+                    description: "کارگاه فشرده طراحی گرافیک",
+                    limit: 15,
+                    registered: 12,
+                    requireValidation: true,
+                    startDate: "1402/06/15",
+                    startTime: "14:00",
+                    endDate: "1402/06/17",
+                    endTime: "18:00",
+                    deliveryInterval: 60,
+                    capacityDistributionType: "auto",
+                    slotCapacity: 5,
+                    timeSlots: [
+                        { id: 1, start: "1402/06/15 14:00", end: "1402/06/15 15:00", capacity: 5, registered: 4 },
+                        { id: 2, start: "1402/06/15 15:00", end: "1402/06/15 16:00", capacity: 5, registered: 3 },
+                        { id: 3, start: "1402/06/15 16:00", end: "1402/06/15 17:00", capacity: 5, registered: 2 },
+                        { id: 4, start: "1402/06/15 17:00", end: "1402/06/15 18:00", capacity: 5, registered: 3 }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: "دوره دیجیتال مارکتینگ",
+                    description: "دوره جامع دیجیتال مارکتینگ و تبلیغات",
+                    limit: 20,
+                    registered: 0,
+                    requireValidation: false,
+                    startDate: "1402/07/01",
+                    startTime: "10:00",
+                    endDate: "1402/08/30",
+                    endTime: "16:00",
+                    deliveryInterval: 0,
+                    capacityDistributionType: "auto",
+                    slotCapacity: 0,
+                    timeSlots: []
+                }
+            ];
+            
+            // آرایه برای نگهداری ثبت نام‌ها - بارگذاری از localStorage یا استفاده از مقادیر پیش‌فرض
+            let registrations = loadFromLocalStorage('registrations') || [
+                {
+                    id: 1,
+                    firstName: "علی",
+                    lastName: "محمدی",
+                    nationalId: "0123456789",
+                    phone: "09121234567",
+                    itemName: "دوره برنامه‌نویسی پیشرفته",
+                    timeSlotId: null,
+                    timeSlotText: "",
+                    date: "1402/02/15"
+                },
+                {
+                    id: 2,
+                    firstName: "مریم",
+                    lastName: "احمدی",
+                    nationalId: "9876543210",
+                    phone: "09131234567",
+                    itemName: "کارگاه طراحی گرافیک",
+                    timeSlotId: 1,
+                    timeSlotText: "1402/06/15 14:00 تا 1402/06/15 15:00",
+                    date: "1402/02/16"
+                }
+            ];
+            
+            // آرایه برای نگهداری کاربران مجاز - بارگذاری از localStorage یا استفاده از مقادیر پیش‌فرض
+            let authorizedUsers = loadFromLocalStorage('authorizedUsers') || [
+                {
+                    id: 1,
+                    firstName: "علی",
+                    lastName: "محمدی",
+                    nationalId: "0123456789",
+                    phone: "09121234567"
+                },
+                {
+                    id: 2,
+                    firstName: "مریم",
+                    lastName: "احمدی",
+                    nationalId: "9876543210",
+                    phone: "09131234567"
+                }
+            ];
+            
+            // پیام مناسبتی - بارگذاری از localStorage یا استفاده از مقدار پیش‌فرض
+            const eventMessage = loadFromLocalStorage('eventMessage') || "به مناسبت عید سعید فطر، ۲۰٪ تخفیف ویژه برای تمامی دوره‌ها در نظر گرفته شده است.";
+            document.getElementById('eventMessage').textContent = eventMessage;
+
+            // راه‌اندازی تقویم فارسی
+            $(document).ready(function() {
+                $("#startDate").persianDatepicker({
+                    format: 'YYYY/MM/DD',
+                    autoClose: true,
+                    initialValue: false,
+                    onSelect: function(unix) {
+                        // تنظیم حداقل تاریخ برای فیلد تاریخ پایان
+                        $("#endDate").persianDatepicker('setDate', [unix]);
+                        
+                        // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                        updateTimeSlotPreview();
+                    }
+                });
+                
+                $("#endDate").persianDatepicker({
+                    format: 'YYYY/MM/DD',
+                    autoClose: true,
+                    initialValue: false,
+                    onSelect: function() {
+                        // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                        updateTimeSlotPreview();
+                    }
+                });
+            });
+
+            // توابع ذخیره‌سازی و بارگذاری از localStorage
+            function saveToLocalStorage(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                    return true;
+                } catch (error) {
+                    console.error('خطا در ذخیره‌سازی داده‌ها:', error);
+                    return false;
+                }
+            }
+            
+            function loadFromLocalStorage(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (error) {
+                    console.error('خطا در بارگذاری داده‌ها:', error);
+                    return null;
+                }
+            }
+            
+            // تابع ذخیره‌سازی تمام داده‌ها
+            function saveAllData() {
+                saveToLocalStorage('items', items);
+                saveToLocalStorage('registrations', registrations);
+                saveToLocalStorage('authorizedUsers', authorizedUsers);
+                saveToLocalStorage('eventMessage', document.getElementById('eventMessage').textContent);
+            }
+
+            // تابع فرمت‌بندی تاریخ و زمان
+            function formatDateTime(date, time) {
+                if (!date) return 'تعیین نشده';
+                return `${date} ${time || ''}`.trim();
+            }
+            
+            // تابع تبدیل دقیقه به ساعت و دقیقه
+            function formatMinutes(minutes) {
+                if (minutes < 60) {
+                    return `${minutes} دقیقه`;
+                } else {
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
+                    if (remainingMinutes === 0) {
+                        return `${hours} ساعت`;
+                    } else {
+                        return `${hours} ساعت و ${remainingMinutes} دقیقه`;
+                    }
+                }
+            }
+            
+            // تابع محاسبه تعداد بازه‌های زمانی و ظرفیت هر بازه
+            function calculateTimeSlots() {
+                const startDate = document.getElementById('startDate').value;
+                const startTime = document.getElementById('startTime').value;
+                const endDate = document.getElementById('endDate').value;
+                const endTime = document.getElementById('endTime').value;
+                const deliveryInterval = parseInt(document.getElementById('deliveryInterval').value);
+                const totalCapacity = parseInt(document.getElementById('itemLimit').value) || 0;
+                const capacityDistributionType = document.getElementById('capacityDistributionType').value;
+                const manualSlotCapacity = parseInt(document.getElementById('slotCapacity').value) || 0;
+                
+                // اگر بازه زمانی تعیین نشده یا صفر است، بازه‌ای وجود ندارد
+                if (!deliveryInterval || deliveryInterval <= 0 || !startDate || !endDate || !startTime || !endTime) {
+                    return {
+                        totalSlots: 0,
+                        slotCapacity: 0,
+                        timeSlots: []
+                    };
+                }
+                
+                // تبدیل تاریخ و زمان به میلی‌ثانیه
+                const startDateTime = new Date(`${startDate.replace(/\//g, '-')}T${startTime}`);
+                const endDateTime = new Date(`${endDate.replace(/\//g, '-')}T${endTime}`);
+                
+                // محاسبه تعداد بازه‌های زمانی
+                const totalMinutes = (endDateTime - startDateTime) / (1000 * 60);
+                const totalSlots = Math.floor(totalMinutes / deliveryInterval);
+                
+                // محاسبه ظرفیت هر بازه
+                let slotCapacity = 0;
+                if (capacityDistributionType === 'auto') {
+                    slotCapacity = Math.ceil(totalCapacity / totalSlots);
+                } else {
+                    slotCapacity = manualSlotCapacity;
+                }
+                
+                // ایجاد بازه‌های زمانی
+                const timeSlots = [];
+                let currentDateTime = new Date(startDateTime);
+                
+                for (let i = 0; i < totalSlots; i++) {
+                    const slotStartTime = new Date(currentDateTime);
+                    const slotEndTime = new Date(currentDateTime.getTime() + deliveryInterval * 60 * 1000);
+                    
+                    // تبدیل به فرمت فارسی
+                    const slotStart = `${formatPersianDate(slotStartTime)} ${formatTime(slotStartTime)}`;
+                    const slotEnd = `${formatPersianDate(slotEndTime)} ${formatTime(slotEndTime)}`;
+                    
+                    timeSlots.push({
+                        id: i + 1,
+                        start: slotStart,
+                        end: slotEnd,
+                        capacity: slotCapacity,
+                        registered: 0
+                    });
+                    
+                    currentDateTime = slotEndTime;
+                }
+                
+                return {
+                    totalSlots,
+                    slotCapacity,
+                    timeSlots
+                };
+            }
+            
+            // تابع تبدیل تاریخ میلادی به شمسی
+            function formatPersianDate(date) {
+                // این تابع باید تاریخ میلادی را به شمسی تبدیل کند
+                // برای سادگی، از فرمت ساده استفاده می‌کنیم
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                
+                // در یک پروژه واقعی، باید از کتابخانه تبدیل تاریخ استفاده شود
+                return `${year}/${month}/${day}`;
+            }
+            
+            // تابع فرمت‌بندی زمان
+            function formatTime(date) {
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${hours}:${minutes}`;
+            }
+            
+            // تابع بروزرسانی پیش‌نمایش بازه‌های زمانی
+            function updateTimeSlotPreview() {
+                const deliveryInterval = parseInt(document.getElementById('deliveryInterval').value);
+                const capacityDistributionType = document.getElementById('capacityDistributionType').value;
+                const timeSlotPreviewContainer = document.getElementById('timeSlotPreviewContainer');
+                
+                // اگر بازه زمانی تعیین نشده، پیش‌نمایش را مخفی می‌کنیم
+                if (!deliveryInterval || deliveryInterval <= 0) {
+                    timeSlotPreviewContainer.classList.add('hidden');
+                    return;
+                }
+                
+                // محاسبه بازه‌های زمانی
+                const { totalSlots, slotCapacity, timeSlots } = calculateTimeSlots();
+                
+                // نمایش اطلاعات کلی
+                document.getElementById('totalSlots').textContent = totalSlots;
+                document.getElementById('slotCapacityPreview').textContent = slotCapacity;
+                
+                // نمایش بازه‌های زمانی
+                const timeSlotsList = document.getElementById('timeSlotsList');
+                timeSlotsList.innerHTML = '';
+                
+                if (timeSlots.length === 0) {
+                    timeSlotsList.innerHTML = '<p class="text-gray-500">لطفا تاریخ و زمان شروع و پایان را تعیین کنید.</p>';
+                } else {
+                    // نمایش حداکثر 5 بازه زمانی برای پیش‌نمایش
+                    const previewLimit = Math.min(5, timeSlots.length);
+                    
+                    for (let i = 0; i < previewLimit; i++) {
+                        const slot = timeSlots[i];
+                        const slotElement = document.createElement('div');
+                        slotElement.className = 'time-slot';
+                        slotElement.innerHTML = `
+                            <div class="time-slot-header">
+                                <span class="font-medium">بازه ${i + 1}</span>
+                                <span class="time-slot-capacity">ظرفیت: ${slot.capacity}</span>
+                            </div>
+                            <div class="time-slot-info">
+                                <span>از: ${slot.start}</span>
+                                <span>تا: ${slot.end}</span>
+                            </div>
+                        `;
+                        timeSlotsList.appendChild(slotElement);
+                    }
+                    
+                    // اگر بازه‌های بیشتری وجود دارد، نمایش پیام
+                    if (timeSlots.length > previewLimit) {
+                        const moreElement = document.createElement('div');
+                        moreElement.className = 'text-center text-indigo-600 mt-2';
+                        moreElement.textContent = `و ${timeSlots.length - previewLimit} بازه دیگر...`;
+                        timeSlotsList.appendChild(moreElement);
+                    }
+                }
+                
+                // نمایش پیش‌نمایش
+                timeSlotPreviewContainer.classList.remove('hidden');
+            }
+
+            // نمایش موارد در نمای کاربر
+            function renderItems() {
+                const itemsList = document.getElementById('itemsList');
+                itemsList.innerHTML = '';
+                
+                items.forEach(item => {
+                    const remaining = item.limit - item.registered;
+                    let statusClass = 'text-green-600';
+                    let statusText = `موجود (${remaining} ظرفیت باقیمانده)`;
+                    
+                    if (remaining <= 5 && remaining > 0) {
+                        statusClass = 'text-yellow-600';
+                        statusText = `ظرفیت محدود (${remaining} ظرفیت باقیمانده)`;
+                    } else if (remaining <= 0) {
+                        statusClass = 'text-red-600';
+                        statusText = 'تکمیل ظرفیت';
+                    }
+                    
+                    // نمایش زمان ارائه
+                    let scheduleInfo = '';
+                    if (item.startDate) {
+                        scheduleInfo = `
+                            <div class="mb-3 text-sm">
+                                <div class="flex items-center mb-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>از: ${formatDateTime(item.startDate, item.startTime)}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>تا: ${formatDateTime(item.endDate, item.endTime)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // نمایش اطلاعات بازه تحویل
+                    let deliveryInfo = '';
+                    if (item.deliveryInterval && item.deliveryInterval > 0) {
+                        deliveryInfo = `
+                            <div class="mb-3 p-2 bg-blue-50 rounded-md">
+                                <div class="flex items-center text-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-sm font-medium">بازه تحویل: هر ${formatMinutes(item.deliveryInterval)}</span>
+                                </div>
+                                <p class="text-xs text-blue-600 mt-1">برای انتخاب بازه زمانی دلخواه، دکمه انتخاب را کلیک کنید.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    const itemCard = document.createElement('div');
+                    itemCard.className = 'item-card bg-white rounded-lg shadow-md overflow-hidden';
+                    itemCard.innerHTML = `
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-indigo-800 mb-2">${item.name}</h3>
+                            <p class="text-gray-600 mb-4">${item.description}</p>
+                            ${scheduleInfo}
+                            ${deliveryInfo}
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="${statusClass} font-medium">${statusText}</span>
+                                ${item.requireValidation ? '<span class="text-blue-600 text-sm">نیاز به اعتبارسنجی</span>' : ''}
+                            </div>
+                            <button class="order-btn w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300" data-id="${item.id}" ${remaining <= 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                                انتخاب
+                            </button>
+                        </div>
+                    `;
+                    
+                    itemsList.appendChild(itemCard);
+                });
+                
+                // اضافه کردن مجدد event listener به دکمه‌های انتخاب
+                attachOrderButtonListeners();
+            }
+            
+            // نمایش موارد در جدول مدیریت
+            function renderAdminItems() {
+                const adminItemsList = document.getElementById('adminItemsList');
+                adminItemsList.innerHTML = '';
+                
+                items.forEach(item => {
+                    const scheduleText = item.startDate ? 
+                        `${item.startDate} ${item.startTime || ''} تا ${item.endDate} ${item.endTime || ''}` : 
+                        'تعیین نشده';
+                    
+                    const deliveryText = item.deliveryInterval && item.deliveryInterval > 0 ? 
+                        `هر ${formatMinutes(item.deliveryInterval)}` : 
+                        'بدون بازه';
+                    
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-gray-50';
+                    row.dataset.id = item.id;
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${item.name}</td>
+                        <td class="py-3 px-4">${item.description}</td>
+                        <td class="py-3 px-4">${item.limit}</td>
+                        <td class="py-3 px-4">${item.registered}</td>
+                        <td class="py-3 px-4">${scheduleText}</td>
+                        <td class="py-3 px-4">${deliveryText}</td>
+                        <td class="py-3 px-4">${item.requireValidation ? 'فعال' : 'غیرفعال'}</td>
+                        <td class="py-3 px-4">
+                            <button class="edit-btn text-blue-600 hover:text-blue-800 ml-2">
+                                ویرایش
+                            </button>
+                            <button class="delete-btn text-red-600 hover:text-red-800">
+                                حذف
+                            </button>
+                        </td>
+                    `;
+                    
+                    adminItemsList.appendChild(row);
+                });
+                
+                // اضافه کردن مجدد event listener به دکمه‌های ویرایش و حذف
+                attachAdminButtonListeners();
+            }
+            
+            // نمایش ثبت نام‌ها در جدول مدیریت
+            function renderRegistrations() {
+                const registrationsList = document.getElementById('registrationsList');
+                registrationsList.innerHTML = '';
+                
+                registrations.forEach(reg => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-gray-50';
+                    row.dataset.id = reg.id;
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${reg.firstName}</td>
+                        <td class="py-3 px-4">${reg.lastName}</td>
+                        <td class="py-3 px-4">${reg.nationalId}</td>
+                        <td class="py-3 px-4">${reg.phone}</td>
+                        <td class="py-3 px-4">${reg.itemName}</td>
+                        <td class="py-3 px-4">${reg.timeSlotText || 'بدون بازه زمانی'}</td>
+                        <td class="py-3 px-4">${reg.date}</td>
+                        <td class="py-3 px-4">
+                            <button class="delete-reg-btn text-red-600 hover:text-red-800">
+                                حذف
+                            </button>
+                        </td>
+                    `;
+                    
+                    registrationsList.appendChild(row);
+                });
+                
+                // اضافه کردن مجدد event listener به دکمه‌های حذف ثبت نام
+                attachDeleteRegButtonListeners();
+            }
+            
+            // نمایش کاربران مجاز
+            function renderAuthorizedUsers() {
+                const authorizedUsersList = document.getElementById('authorizedUsersList');
+                authorizedUsersList.innerHTML = '';
+                
+                authorizedUsers.forEach((user, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-gray-50';
+                    row.dataset.id = user.id;
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${index + 1}</td>
+                        <td class="py-3 px-4">${user.firstName || '-'}</td>
+                        <td class="py-3 px-4">${user.lastName || '-'}</td>
+                        <td class="py-3 px-4">${user.nationalId}</td>
+                        <td class="py-3 px-4">${user.phone}</td>
+                        <td class="py-3 px-4">
+                            <button class="delete-user-btn text-red-600 hover:text-red-800">
+                                حذف
+                            </button>
+                        </td>
+                    `;
+                    
+                    authorizedUsersList.appendChild(row);
+                });
+                
+                // بروزرسانی تعداد کاربران مجاز
+                document.getElementById('authorizedUsersCount').textContent = `${authorizedUsers.length} کاربر مجاز`;
+                
+                // اضافه کردن مجدد event listener به دکمه‌های حذف کاربر
+                attachDeleteUserButtonListeners();
+            }
+            
+            // اضافه کردن event listener به دکمه‌های انتخاب
+            function attachOrderButtonListeners() {
+                const orderBtns = document.querySelectorAll('.order-btn:not([disabled])');
+                orderBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const itemId = parseInt(this.dataset.id);
+                        const item = items.find(i => i.id === itemId);
+                        
+                        if (!item) return;
+                        
+                        // اگر بازه زمانی تعریف شده باشد، ابتدا مودال انتخاب بازه زمانی را نمایش می‌دهیم
+                        if (item.deliveryInterval && item.deliveryInterval > 0 && item.timeSlots && item.timeSlots.length > 0) {
+                            showTimeSlotModal(item);
+                        } else {
+                            showOrderModal(item);
+                        }
+                    });
+                });
+            }
+            
+            // نمایش مودال انتخاب بازه زمانی
+            function showTimeSlotModal(item) {
+                const timeSlotModalContent = document.getElementById('timeSlotModalContent');
+                timeSlotModalContent.innerHTML = '';
+                
+                // عنوان مودال
+                const title = document.createElement('p');
+                title.className = 'mb-4';
+                title.textContent = `لطفا بازه زمانی مورد نظر برای "${item.name}" را انتخاب کنید:`;
+                timeSlotModalContent.appendChild(title);
+                
+                // نمایش بازه‌های زمانی
+                item.timeSlots.forEach(slot => {
+                    const remaining = slot.capacity - slot.registered;
+                    const isAvailable = remaining > 0;
+                    
+                    const slotElement = document.createElement('div');
+                    slotElement.className = `time-slot mb-2 ${isAvailable ? 'cursor-pointer hover:bg-blue-50' : 'opacity-60'}`;
+                    slotElement.dataset.id = slot.id;
+                    
+                    if (isAvailable) {
+                        slotElement.addEventListener('click', function() {
+                            // حذف کلاس انتخاب از همه بازه‌ها
+                            document.querySelectorAll('.time-slot').forEach(el => {
+                                el.classList.remove('bg-blue-100', 'border-blue-300');
+                            });
+                            
+                            // اضافه کردن کلاس انتخاب به بازه انتخاب شده
+                            this.classList.add('bg-blue-100', 'border-blue-300');
+                            
+                            // فعال کردن دکمه تایید
+                            document.getElementById('confirmTimeSlot').disabled = false;
+                            document.getElementById('confirmTimeSlot').classList.remove('opacity-50', 'cursor-not-allowed');
+                            document.getElementById('confirmTimeSlot').dataset.slotId = slot.id;
+                            document.getElementById('confirmTimeSlot').dataset.itemId = item.id;
+                        });
+                    }
+                    
+                    slotElement.innerHTML = `
+                        <div class="time-slot-header">
+                            <span class="font-medium">بازه ${slot.id}</span>
+                            <span class="time-slot-capacity ${isAvailable ? 'text-green-600' : 'text-red-600'}">
+                                ${isAvailable ? `${remaining} ظرفیت باقیمانده` : 'تکمیل ظرفیت'}
+                            </span>
+                        </div>
+                        <div class="time-slot-info">
+                            <span>از: ${slot.start}</span>
+                            <span>تا: ${slot.end}</span>
+                        </div>
+                    `;
+                    
+                    timeSlotModalContent.appendChild(slotElement);
+                });
+                
+                // غیرفعال کردن دکمه تایید
+                const confirmBtn = document.getElementById('confirmTimeSlot');
+                confirmBtn.disabled = true;
+                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                // نمایش مودال
+                document.getElementById('timeSlotModal').classList.remove('hidden');
+            }
+            
+            // نمایش مودال سفارش
+            function showOrderModal(item, selectedTimeSlot = null) {
+                document.getElementById('modalTitle').textContent = `ثبت انتخاب: ${item.name}`;
+                
+                const modalContent = document.getElementById('modalContent');
+                modalContent.innerHTML = `
+                    <p class="mb-4">شما در حال انتخاب ${item.name} هستید.</p>
+                    ${selectedTimeSlot ? `
+                        <div class="mb-4 p-3 bg-blue-50 rounded-md">
+                            <div class="flex items-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="font-medium">بازه زمانی انتخاب شده:</span>
+                            </div>
+                            <p class="text-sm">از: ${selectedTimeSlot.start}</p>
+                            <p class="text-sm">تا: ${selectedTimeSlot.end}</p>
+                        </div>
+                    ` : ''}
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="customerNationalId">کد ملی</label>
+                        <input type="text" id="customerNationalId" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="کد ملی خود را وارد کنید">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="customerPhone">شماره تماس</label>
+                        <input type="tel" id="customerPhone" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="شماره تماس خود را وارد کنید">
+                    </div>
+                    <div id="userInfoContainer" class="mb-4 p-3 bg-green-50 rounded-md border border-green-200 hidden">
+                        <div class="flex items-center mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="font-medium text-green-700">اطلاعات شما تأیید شد</span>
+                        </div>
+                        <p class="text-gray-700">نام و نام خانوادگی: <span id="userFullName" class="font-bold"></span></p>
+                    </div>
+                    ${item.requireValidation ? '<p class="text-blue-600 text-sm">توجه: برای این مورد، کد ملی و شماره تماس شما باید در لیست افراد مجاز باشد.</p>' : ''}
+                    <div class="mt-4">
+                        <button id="verifyUserInfo" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition duration-300 w-full">
+                            بررسی اطلاعات
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('orderModal').classList.remove('hidden');
+                
+                // ذخیره شناسه مورد انتخابی برای استفاده در تایید سفارش
+                const confirmOrderBtn = document.getElementById('confirmOrder');
+                confirmOrderBtn.dataset.itemId = item.id;
+                
+                // اگر بازه زمانی انتخاب شده، آن را نیز ذخیره می‌کنیم
+                if (selectedTimeSlot) {
+                    confirmOrderBtn.dataset.timeSlotId = selectedTimeSlot.id;
+                    confirmOrderBtn.dataset.timeSlotText = `${selectedTimeSlot.start} تا ${selectedTimeSlot.end}`;
+                } else {
+                    confirmOrderBtn.dataset.timeSlotId = '';
+                    confirmOrderBtn.dataset.timeSlotText = '';
+                }
+                
+                // غیرفعال کردن دکمه تایید انتخاب تا زمانی که اطلاعات کاربر تایید شود
+                confirmOrderBtn.disabled = true;
+                confirmOrderBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                // اضافه کردن event listener به دکمه بررسی اطلاعات
+                document.getElementById('verifyUserInfo').addEventListener('click', function() {
+                    verifyUserInformation(item.requireValidation);
+                });
+                
+                // اضافه کردن event listener برای بررسی خودکار هنگام تغییر فیلدها
+                document.getElementById('customerNationalId').addEventListener('input', function() {
+                    if (this.value.length >= 10 && document.getElementById('customerPhone').value.length >= 11) {
+                        verifyUserInformation(item.requireValidation);
+                    }
+                });
+                
+                document.getElementById('customerPhone').addEventListener('input', function() {
+                    if (this.value.length >= 11 && document.getElementById('customerNationalId').value.length >= 10) {
+                        verifyUserInformation(item.requireValidation);
+                    }
+                });
+            }
+            
+            // تابع بررسی اطلاعات کاربر
+            function verifyUserInformation(requireValidation) {
+                const nationalId = document.getElementById('customerNationalId').value.trim();
+                const phone = document.getElementById('customerPhone').value.trim();
+                const userInfoContainer = document.getElementById('userInfoContainer');
+                const userFullName = document.getElementById('userFullName');
+                const confirmOrderBtn = document.getElementById('confirmOrder');
+                
+                if (!nationalId || !phone) {
+                    showErrorModal('لطفا کد ملی و شماره تماس خود را وارد کنید');
+                    return;
+                }
+                
+                // جستجوی کاربر در لیست کاربران مجاز
+                const authorizedUser = authorizedUsers.find(user => {
+                    const userNationalId = user.nationalId.trim();
+                    const userPhone = user.phone.trim();
+                    
+                    // اگر اعتبارسنجی نیاز است، هر دو فیلد باید مطابقت داشته باشند
+                    if (requireValidation) {
+                        return userNationalId === nationalId && userPhone === phone;
+                    } else {
+                        // اگر اعتبارسنجی نیاز نیست، فقط کد ملی را بررسی می‌کنیم
+                        return userNationalId === nationalId;
+                    }
+                });
+                
+                if (authorizedUser) {
+                    // نمایش اطلاعات کاربر
+                    userFullName.textContent = `${authorizedUser.firstName || ''} ${authorizedUser.lastName || ''}`;
+                    userInfoContainer.classList.remove('hidden');
+                    
+                    // فعال کردن دکمه تایید انتخاب
+                    confirmOrderBtn.disabled = false;
+                    confirmOrderBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // ذخیره اطلاعات کاربر برای استفاده در ثبت نام
+                    confirmOrderBtn.dataset.firstName = authorizedUser.firstName || '';
+                    confirmOrderBtn.dataset.lastName = authorizedUser.lastName || '';
+                } else {
+                    // مخفی کردن اطلاعات کاربر
+                    userInfoContainer.classList.add('hidden');
+                    
+                    // غیرفعال کردن دکمه تایید انتخاب
+                    confirmOrderBtn.disabled = true;
+                    confirmOrderBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    // نمایش پیام خطا
+                    if (requireValidation) {
+                        showErrorModal('کد ملی یا شماره تماس شما در لیست افراد مجاز نیست. لطفا اطلاعات را با دقت وارد کنید.');
+                    } else {
+                        showErrorModal('کد ملی وارد شده در سیستم یافت نشد. لطفا اطلاعات را با دقت وارد کنید.');
+                    }
+                }
+            }
+            
+            // اضافه کردن event listener به دکمه‌های ویرایش و حذف در پنل مدیریت
+            function attachAdminButtonListeners() {
+                // دکمه‌های ویرایش
+                const editBtns = document.querySelectorAll('.edit-btn');
+                editBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        const itemId = parseInt(row.dataset.id);
+                        const item = items.find(i => i.id === itemId);
+                        
+                        if (item) {
+                            document.getElementById('itemName').value = item.name;
+                            document.getElementById('itemDescription').value = item.description;
+                            document.getElementById('itemLimit').value = item.limit;
+                            document.getElementById('requireValidation').checked = item.requireValidation;
+                            
+                            // تنظیم مقادیر تاریخ و زمان
+                            if (item.startDate) {
+                                $("#startDate").val(item.startDate);
+                                document.getElementById('startTime').value = item.startTime || '';
+                            }
+                            
+                            if (item.endDate) {
+                                $("#endDate").val(item.endDate);
+                                document.getElementById('endTime').value = item.endTime || '';
+                            }
+                            
+                            // تنظیم مقادیر بازه تحویل
+                            document.getElementById('deliveryInterval').value = item.deliveryInterval || 0;
+                            document.getElementById('capacityDistributionType').value = item.capacityDistributionType || 'auto';
+                            
+                            // اگر نوع توزیع ظرفیت دستی است، فیلد ظرفیت هر بازه را فعال می‌کنیم
+                            const slotCapacityField = document.getElementById('slotCapacity');
+                            if (item.capacityDistributionType === 'manual') {
+                                slotCapacityField.disabled = false;
+                                slotCapacityField.value = item.slotCapacity || '';
+                            } else {
+                                slotCapacityField.disabled = true;
+                                slotCapacityField.value = '';
+                            }
+                            
+                            // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                            updateTimeSlotPreview();
+                            
+                            // ذخیره شناسه مورد برای استفاده در بروزرسانی
+                            document.getElementById('addItem').dataset.editId = itemId;
+                            document.getElementById('addItem').textContent = 'بروزرسانی مورد';
+                        }
+                    });
+                });
+                
+                // دکمه‌های حذف
+                const deleteBtns = document.querySelectorAll('.delete-btn');
+                deleteBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        const itemId = parseInt(row.dataset.id);
+                        
+                        if (confirm('آیا از حذف این مورد اطمینان دارید؟')) {
+                            // حذف مورد از آرایه
+                            items = items.filter(i => i.id !== itemId);
+                            
+                            // بروزرسانی نمایش
+                            renderAdminItems();
+                            renderItems();
+                            
+                            // ذخیره تغییرات
+                            saveAllData();
+                            
+                            showSuccessModal('مورد با موفقیت حذف شد.');
+                        }
+                    });
+                });
+            }
+            
+            // اضافه کردن event listener به دکمه‌های حذف ثبت نام
+            function attachDeleteRegButtonListeners() {
+                const deleteRegBtns = document.querySelectorAll('.delete-reg-btn');
+                deleteRegBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        const regId = parseInt(row.dataset.id);
+                        
+                        if (confirm('آیا از حذف این ثبت نام اطمینان دارید؟')) {
+                            // یافتن ثبت نام برای کاهش تعداد ثبت نام‌های مورد مربوطه
+                            const registration = registrations.find(r => r.id === regId);
+                            if (registration) {
+                                const item = items.find(i => i.name === registration.itemName);
+                                if (item && item.registered > 0) {
+                                    item.registered--;
+                                    
+                                    // اگر بازه زمانی داشته باشد، تعداد ثبت نام آن بازه را نیز کاهش می‌دهیم
+                                    if (registration.timeSlotId && item.timeSlots) {
+                                        const timeSlot = item.timeSlots.find(ts => ts.id === registration.timeSlotId);
+                                        if (timeSlot && timeSlot.registered > 0) {
+                                            timeSlot.registered--;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // حذف ثبت نام از آرایه
+                            registrations = registrations.filter(r => r.id !== regId);
+                            
+                            // بروزرسانی نمایش
+                            renderRegistrations();
+                            renderAdminItems();
+                            renderItems();
+                            
+                            // ذخیره تغییرات
+                            saveAllData();
+                            
+                            showSuccessModal('ثبت نام با موفقیت حذف شد.');
+                        }
+                    });
+                });
+            }
+            
+            // اضافه کردن event listener به دکمه‌های حذف کاربر مجاز
+            function attachDeleteUserButtonListeners() {
+                const deleteUserBtns = document.querySelectorAll('.delete-user-btn');
+                deleteUserBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const row = this.closest('tr');
+                        const userId = parseInt(row.dataset.id);
+                        
+                        if (confirm('آیا از حذف این کاربر مجاز اطمینان دارید؟')) {
+                            // حذف کاربر از آرایه
+                            authorizedUsers = authorizedUsers.filter(u => u.id !== userId);
+                            
+                            // بروزرسانی نمایش
+                            renderAuthorizedUsers();
+                            
+                            // ذخیره تغییرات
+                            saveAllData();
+                            
+                            showSuccessModal('کاربر مجاز با موفقیت حذف شد.');
+                        }
+                    });
+                });
+            }
+            
+            // نمایش مودال خطا
+            function showErrorModal(message) {
+                document.getElementById('errorContent').textContent = message;
+                document.getElementById('errorModal').classList.remove('hidden');
+            }
+            
+            // نمایش مودال موفقیت
+            function showSuccessModal(message) {
+                document.getElementById('successContent').textContent = message;
+                document.getElementById('successModal').classList.remove('hidden');
+            }
+
+            // نمایش/مخفی کردن فرم ورود مدیر
+            document.getElementById('adminButton').addEventListener('click', function() {
+                if (isLoggedIn) {
+                    document.getElementById('adminPanel').style.display = 'block';
+                    document.getElementById('adminLogin').style.display = 'none';
+                } else {
+                    document.getElementById('adminLogin').style.display = 'block';
+                    document.getElementById('adminPanel').style.display = 'none';
+                }
+            });
+
+            // ورود مدیر
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                const username = document.getElementById('adminUsername').value;
+                const password = document.getElementById('adminPassword').value;
+                
+                if (username === adminCredentials.username && password === adminCredentials.password) {
+                    isLoggedIn = true;
+                    document.getElementById('adminLogin').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'block';
+                    document.getElementById('loginError').classList.add('hidden');
+                    
+                    // بروزرسانی جداول مدیریت
+                    renderAdminItems();
+                    renderRegistrations();
+                    renderAuthorizedUsers();
+                } else {
+                    document.getElementById('loginError').classList.remove('hidden');
+                }
+            });
+
+            // خروج مدیر
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                isLoggedIn = false;
+                document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminUsername').value = '';
+                document.getElementById('adminPassword').value = '';
+                
+                // پاک کردن فرم افزودن مورد
+                resetAddItemForm();
+            });
+
+            // بستن مودال سفارش
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('orderModal').classList.add('hidden');
+            });
+            
+            // بستن مودال خطا
+            document.getElementById('closeErrorModal').addEventListener('click', function() {
+                document.getElementById('errorModal').classList.add('hidden');
+            });
+            
+            // بستن مودال موفقیت
+            document.getElementById('closeSuccessModal').addEventListener('click', function() {
+                document.getElementById('successModal').classList.add('hidden');
+            });
+            
+            // بستن مودال انتخاب بازه زمانی
+            document.getElementById('closeTimeSlotModal').addEventListener('click', function() {
+                document.getElementById('timeSlotModal').classList.add('hidden');
+            });
+            
+            // تایید انتخاب بازه زمانی
+            document.getElementById('confirmTimeSlot').addEventListener('click', function() {
+                const itemId = parseInt(this.dataset.itemId);
+                const slotId = parseInt(this.dataset.slotId);
+                
+                // یافتن مورد و بازه زمانی
+                const item = items.find(i => i.id === itemId);
+                if (!item || !item.timeSlots) return;
+                
+                const selectedTimeSlot = item.timeSlots.find(ts => ts.id === slotId);
+                if (!selectedTimeSlot) return;
+                
+                // بستن مودال انتخاب بازه زمانی
+                document.getElementById('timeSlotModal').classList.add('hidden');
+                
+                // نمایش مودال سفارش با بازه زمانی انتخاب شده
+                showOrderModal(item, selectedTimeSlot);
+            });
+
+            // تابع بررسی تکراری بودن ثبت نام
+            function isAlreadyRegistered(nationalId, phone) {
+                // بررسی بر اساس کد ملی یا شماره تماس
+                return registrations.some(reg => 
+                    reg.nationalId.trim() === nationalId.trim() || 
+                    reg.phone.trim() === phone.trim()
+                );
+            }
+
+            // تایید سفارش
+            document.getElementById('confirmOrder').addEventListener('click', function() {
+                const nationalId = document.getElementById('customerNationalId')?.value || '';
+                const phone = document.getElementById('customerPhone')?.value || '';
+                const itemId = parseInt(this.dataset.itemId);
+                const firstName = this.dataset.firstName || '';
+                const lastName = this.dataset.lastName || '';
+                const timeSlotId = this.dataset.timeSlotId ? parseInt(this.dataset.timeSlotId) : null;
+                const timeSlotText = this.dataset.timeSlotText || '';
+                
+                if (!nationalId || !phone) {
+                    showErrorModal('لطفا تمام فیلدها را پر کنید');
+                    return;
+                }
+                
+                // یافتن مورد انتخابی
+                const item = items.find(i => i.id === itemId);
+                if (!item) {
+                    showErrorModal('مورد انتخابی یافت نشد');
+                    return;
+                }
+                
+                // بررسی تکراری بودن ثبت نام
+                if (isAlreadyRegistered(nationalId, phone)) {
+                    showErrorModal('شما قبلاً در یکی از موارد ثبت نام کرده‌اید. هر فرد فقط یک بار می‌تواند ثبت نام کند.');
+                    return;
+                }
+                
+                // افزودن ثبت نام جدید
+                const newRegistration = {
+                    id: registrations.length > 0 ? Math.max(...registrations.map(r => r.id)) + 1 : 1,
+                    firstName,
+                    lastName,
+                    nationalId,
+                    phone,
+                    itemName: item.name,
+                    timeSlotId,
+                    timeSlotText,
+                    date: new Date().toLocaleDateString('fa-IR')
+                };
+                
+                registrations.push(newRegistration);
+                
+                // افزایش تعداد ثبت نام‌های مورد
+                item.registered++;
+                
+                // اگر بازه زمانی انتخاب شده، تعداد ثبت نام آن بازه را نیز افزایش می‌دهیم
+                if (timeSlotId && item.timeSlots) {
+                    const timeSlot = item.timeSlots.find(ts => ts.id === timeSlotId);
+                    if (timeSlot) {
+                        timeSlot.registered++;
+                    }
+                }
+                
+                // بروزرسانی نمایش
+                renderRegistrations();
+                renderAdminItems();
+                renderItems();
+                
+                // ذخیره تغییرات
+                saveAllData();
+                
+                document.getElementById('orderModal').classList.add('hidden');
+                
+                // نمایش پیام موفقیت با نام و نام خانوادگی
+                let successMessage = '';
+                if (firstName && lastName) {
+                    successMessage = `${firstName} ${lastName} عزیز، انتخاب شما با موفقیت ثبت شد. به زودی با شماره ${phone} با شما تماس خواهیم گرفت.`;
+                } else {
+                    successMessage = `انتخاب شما با موفقیت ثبت شد. به زودی با شماره ${phone} با شما تماس خواهیم گرفت.`;
+                }
+                
+                if (timeSlotText) {
+                    successMessage += `\nبازه زمانی انتخاب شده: ${timeSlotText}`;
+                }
+                
+                showSuccessModal(successMessage);
+            });
+            
+            // تغییر نوع توزیع ظرفیت
+            document.getElementById('capacityDistributionType').addEventListener('change', function() {
+                const slotCapacityField = document.getElementById('slotCapacity');
+                
+                if (this.value === 'manual') {
+                    slotCapacityField.disabled = false;
+                } else {
+                    slotCapacityField.disabled = true;
+                    slotCapacityField.value = '';
+                }
+                
+                // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                updateTimeSlotPreview();
+            });
+            
+            // تغییر بازه تحویل
+            document.getElementById('deliveryInterval').addEventListener('change', function() {
+                // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                updateTimeSlotPreview();
+            });
+            
+            // تغییر ظرفیت هر بازه (در حالت دستی)
+            document.getElementById('slotCapacity').addEventListener('input', function() {
+                // بروزرسانی پیش‌نمایش بازه‌های زمانی
+                updateTimeSlotPreview();
+            });
+            
+            // تغییر زمان شروع و پایان
+            document.getElementById('startTime').addEventListener('change', updateTimeSlotPreview);
+            document.getElementById('endTime').addEventListener('change', updateTimeSlotPreview);
+            
+            // تابع پاک کردن فرم افزودن مورد
+            function resetAddItemForm() {
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemLimit').value = '';
+                document.getElementById('itemDescription').value = '';
+                document.getElementById('requireValidation').checked = false;
+                document.getElementById('startDate').value = '';
+                document.getElementById('startTime').value = '';
+                document.getElementById('endDate').value = '';
+                document.getElementById('endTime').value = '';
+                document.getElementById('deliveryInterval').value = '0';
+                document.getElementById('capacityDistributionType').value = 'auto';
+                document.getElementById('slotCapacity').value = '';
+                document.getElementById('slotCapacity').disabled = true;
+                document.getElementById('timeSlotPreviewContainer').classList.add('hidden');
+                document.getElementById('addItem').dataset.editId = '';
+                document.getElementById('addItem').textContent = 'افزودن مورد';
+            }
+
+            // افزودن مورد جدید
+            document.getElementById('addItem').addEventListener('click', function() {
+                const name = document.getElementById('itemName').value;
+                const limit = parseInt(document.getElementById('itemLimit').value);
+                const description = document.getElementById('itemDescription').value;
+                const requireValidation = document.getElementById('requireValidation').checked;
+                const startDate = document.getElementById('startDate').value;
+                const startTime = document.getElementById('startTime').value;
+                const endDate = document.getElementById('endDate').value;
+                const endTime = document.getElementById('endTime').value;
+                const deliveryInterval = parseInt(document.getElementById('deliveryInterval').value) || 0;
+                const capacityDistributionType = document.getElementById('capacityDistributionType').value;
+                const slotCapacity = capacityDistributionType === 'manual' ? parseInt(document.getElementById('slotCapacity').value) || 0 : 0;
+                const editId = this.dataset.editId ? parseInt(this.dataset.editId) : null;
+                
+                if (!name || !limit || !description) {
+                    showErrorModal('لطفا عنوان، ظرفیت و توضیحات را وارد کنید');
+                    return;
+                }
+                
+                // بررسی تاریخ‌ها
+                if ((startDate && !endDate) || (!startDate && endDate)) {
+                    showErrorModal('لطفا هر دو تاریخ شروع و پایان را وارد کنید');
+                    return;
+                }
+                
+                // بررسی ظرفیت هر بازه در حالت دستی
+                if (deliveryInterval > 0 && capacityDistributionType === 'manual' && (!slotCapacity || slotCapacity <= 0)) {
+                    showErrorModal('لطفا ظرفیت هر بازه را وارد کنید');
+                    return;
+                }
+                
+                // محاسبه بازه‌های زمانی
+                const { timeSlots } = calculateTimeSlots();
+                
+                if (editId) {
+                    // ویرایش مورد موجود
+                    const itemIndex = items.findIndex(i => i.id === editId);
+                    if (itemIndex !== -1) {
+                        // ذخیره تعداد ثبت نام‌های قبلی
+                        const previousRegistered = items[itemIndex].registered;
+                        
+                        // ذخیره بازه‌های زمانی قبلی (برای حفظ تعداد ثبت نام‌ها)
+                        const previousTimeSlots = items[itemIndex].timeSlots || [];
+                        
+                        // بروزرسانی اطلاعات مورد
+                        items[itemIndex].name = name;
+                        items[itemIndex].description = description;
+                        items[itemIndex].limit = limit;
+                        items[itemIndex].requireValidation = requireValidation;
+                        items[itemIndex].startDate = startDate;
+                        items[itemIndex].startTime = startTime;
+                        items[itemIndex].endDate = endDate;
+                        items[itemIndex].endTime = endTime;
+                        items[itemIndex].deliveryInterval = deliveryInterval;
+                        items[itemIndex].capacityDistributionType = capacityDistributionType;
+                        items[itemIndex].slotCapacity = slotCapacity;
+                        items[itemIndex].registered = previousRegistered;
+                        
+                        // بروزرسانی بازه‌های زمانی با حفظ تعداد ثبت نام‌ها
+                        if (deliveryInterval > 0 && timeSlots.length > 0) {
+                            // انتقال تعداد ثبت نام‌ها از بازه‌های قبلی به بازه‌های جدید
+                            timeSlots.forEach(slot => {
+                                const previousSlot = previousTimeSlots.find(ps => ps.id === slot.id);
+                                if (previousSlot) {
+                                    slot.registered = previousSlot.registered;
+                                }
+                            });
+                            
+                            items[itemIndex].timeSlots = timeSlots;
+                        } else {
+                            items[itemIndex].timeSlots = [];
+                        }
+                        
+                        showSuccessModal('مورد با موفقیت بروزرسانی شد.');
+                    }
+                } else {
+                    // افزودن مورد جدید
+                    const newItem = {
+                        id: items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1,
+                        name,
+                        description,
+                        limit,
+                        registered: 0,
+                        requireValidation,
+                        startDate,
+                        startTime,
+                        endDate,
+                        endTime,
+                        deliveryInterval,
+                        capacityDistributionType,
+                        slotCapacity,
+                        timeSlots: deliveryInterval > 0 ? timeSlots : []
+                    };
+                    
+                    items.push(newItem);
+                    
+                    showSuccessModal('مورد جدید با موفقیت اضافه شد.');
+                }
+                
+                // بروزرسانی نمایش
+                renderAdminItems();
+                renderItems();
+                
+                // ذخیره تغییرات
+                saveAllData();
+                
+                // پاک کردن فرم
+                resetAddItemForm();
+            });
+            
+            // آپلود فایل اکسل
+            document.getElementById('uploadExcel').addEventListener('click', function() {
+                const fileInput = document.getElementById('excelFile');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showErrorModal('لطفا یک فایل اکسل انتخاب کنید');
+                    return;
+                }
+                
+                // نمایش وضعیت بارگذاری
+                document.getElementById('excelStatus').classList.remove('hidden');
+                document.getElementById('excelResult').classList.add('hidden');
+                
+                // خواندن فایل اکسل
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // خواندن اولین شیت
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // تبدیل به آرایه
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        // بررسی ستون‌های مورد نیاز
+                        if (jsonData.length === 0) {
+                            throw new Error('فایل اکسل خالی است');
+                        }
+                        
+                        const firstRow = jsonData[0];
+                        const hasNationalId = 'کد ملی' in firstRow || 'nationalId' in firstRow;
+                        const hasPhone = 'شماره همراه' in firstRow || 'phone' in firstRow;
+                        
+                        if (!hasNationalId || !hasPhone) {
+                            throw new Error('فایل اکسل باید شامل ستون‌های "کد ملی" و "شماره همراه" باشد');
+                        }
+                        
+                        // پردازش داده‌ها
+                        const newUsers = [];
+                        let nextId = authorizedUsers.length > 0 ? Math.max(...authorizedUsers.map(u => u.id)) + 1 : 1;
+                        
+                        jsonData.forEach(row => {
+                            const nationalId = (row['کد ملی'] || row['nationalId'] || '').toString().trim();
+                            const phone = (row['شماره همراه'] || row['phone'] || '').toString().trim();
+                            const firstName = (row['نام'] || row['firstName'] || '').toString().trim();
+                            const lastName = (row['نام خانوادگی'] || row['lastName'] || '').toString().trim();
+                            
+                            if (nationalId && phone) {
+                                // بررسی تکراری نبودن
+                                const isDuplicate = authorizedUsers.some(user => 
+                                    user.nationalId.trim() === nationalId && user.phone.trim() === phone
+                                );
+                                
+                                if (!isDuplicate) {
+                                    newUsers.push({
+                                        id: nextId++,
+                                        firstName,
+                                        lastName,
+                                        nationalId,
+                                        phone
+                                    });
+                                }
+                            }
+                        });
+                        
+                        // افزودن کاربران جدید
+                        authorizedUsers = [...authorizedUsers, ...newUsers];
+                        
+                        // نمایش نتیجه
+                        document.getElementById('excelStatus').classList.add('hidden');
+                        document.getElementById('excelResult').classList.remove('hidden');
+                        document.getElementById('excelResultText').textContent = `${newUsers.length} کاربر جدید با موفقیت اضافه شد.`;
+                        
+                        // بروزرسانی جدول کاربران مجاز
+                        renderAuthorizedUsers();
+                        
+                        // ذخیره تغییرات
+                        saveAllData();
+                        
+                        // پاک کردن فیلد فایل
+                        fileInput.value = '';
+                        
+                    } catch (error) {
+                        document.getElementById('excelStatus').classList.add('hidden');
+                        document.getElementById('excelResult').classList.remove('hidden');
+                        document.getElementById('excelResultText').textContent = `خطا: ${error.message}`;
+                        document.getElementById('excelResult').querySelector('div').className = 'p-3 bg-red-100 text-red-700 rounded-md';
+                    }
+                };
+                
+                reader.onerror = function() {
+                    document.getElementById('excelStatus').classList.add('hidden');
+                    document.getElementById('excelResult').classList.remove('hidden');
+                    document.getElementById('excelResultText').textContent = 'خطا در خواندن فایل';
+                    document.getElementById('excelResult').querySelector('div').className = 'p-3 bg-red-100 text-red-700 rounded-md';
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+            
+            // حذف همه کاربران مجاز
+            document.getElementById('clearAuthorizedUsers').addEventListener('click', function() {
+                if (confirm('آیا از حذف تمام کاربران مجاز اطمینان دارید؟')) {
+                    authorizedUsers = [];
+                    renderAuthorizedUsers();
+                    
+                    // ذخیره تغییرات
+                    saveAllData();
+                    
+                    showSuccessModal('تمام کاربران مجاز با موفقیت حذف شدند.');
+                }
+            });
+            
+            // دانلود فایل پشتیبان
+            document.getElementById('exportData').addEventListener('click', function() {
+                try {
+                    // ایجاد آبجکت داده‌ها
+                    const backupData = {
+                        items,
+                        registrations,
+                        authorizedUsers,
+                        eventMessage: document.getElementById('eventMessage').textContent,
+                        exportDate: new Date().toISOString()
+                    };
+                    
+                    // تبدیل به JSON
+                    const jsonData = JSON.stringify(backupData, null, 2);
+                    
+                    // ایجاد فایل برای دانلود
+                    const blob = new Blob([jsonData], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // ایجاد لینک دانلود
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `system_backup_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // پاکسازی
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 0);
+                    
+                    // نمایش پیام موفقیت
+                    document.getElementById('backupStatus').classList.remove('hidden');
+                    document.getElementById('backupStatusText').textContent = 'فایل پشتیبان با موفقیت ایجاد شد.';
+                    document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-green-100 text-green-700 rounded-md';
+                    
+                    // مخفی کردن پیام بعد از چند ثانیه
+                    setTimeout(() => {
+                        document.getElementById('backupStatus').classList.add('hidden');
+                    }, 3000);
+                    
+                } catch (error) {
+                    console.error('خطا در ایجاد فایل پشتیبان:', error);
+                    
+                    // نمایش پیام خطا
+                    document.getElementById('backupStatus').classList.remove('hidden');
+                    document.getElementById('backupStatusText').textContent = `خطا در ایجاد فایل پشتیبان: ${error.message}`;
+                    document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-red-100 text-red-700 rounded-md';
+                }
+            });
+            
+            // بازیابی از فایل پشتیبان
+            document.getElementById('importData').addEventListener('click', function() {
+                const fileInput = document.getElementById('importFile');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showErrorModal('لطفا یک فایل پشتیبان انتخاب کنید');
+                    return;
+                }
+                
+                // نمایش وضعیت بارگذاری
+                document.getElementById('backupStatus').classList.remove('hidden');
+                document.getElementById('backupStatusText').textContent = 'در حال بازیابی اطلاعات...';
+                document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-blue-100 text-blue-700 rounded-md';
+                
+                // خواندن فایل
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const backupData = JSON.parse(e.target.result);
+                        
+                        // بررسی اعتبار داده‌ها
+                        if (!backupData.items || !backupData.registrations || !backupData.authorizedUsers) {
+                            throw new Error('فایل پشتیبان نامعتبر است');
+                        }
+                        
+                        // بازیابی داده‌ها
+                        items = backupData.items;
+                        registrations = backupData.registrations;
+                        authorizedUsers = backupData.authorizedUsers;
+                        
+                        if (backupData.eventMessage) {
+                            document.getElementById('eventMessage').textContent = backupData.eventMessage;
+                        }
+                        
+                        // بروزرسانی نمایش
+                        renderItems();
+                        renderAdminItems();
+                        renderRegistrations();
+                        renderAuthorizedUsers();
+                        
+                        // ذخیره تغییرات
+                        saveAllData();
+                        
+                        // نمایش پیام موفقیت
+                        document.getElementById('backupStatus').classList.remove('hidden');
+                        document.getElementById('backupStatusText').textContent = 'اطلاعات با موفقیت بازیابی شد.';
+                        document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-green-100 text-green-700 rounded-md';
+                        
+                        // پاک کردن فیلد فایل
+                        fileInput.value = '';
+                        
+                    } catch (error) {
+                        console.error('خطا در بازیابی اطلاعات:', error);
+                        
+                        // نمایش پیام خطا
+                        document.getElementById('backupStatus').classList.remove('hidden');
+                        document.getElementById('backupStatusText').textContent = `خطا در بازیابی اطلاعات: ${error.message}`;
+                        document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-red-100 text-red-700 rounded-md';
+                    }
+                };
+                
+                reader.onerror = function() {
+                    document.getElementById('backupStatus').classList.remove('hidden');
+                    document.getElementById('backupStatusText').textContent = 'خطا در خواندن فایل';
+                    document.getElementById('backupStatus').querySelector('div').className = 'p-3 bg-red-100 text-red-700 rounded-md';
+                };
+                
+                reader.readAsText(file);
+            });
+
+            // نمایش اولیه موارد
+            renderItems();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9651c025d1cad2d2',t:'MTc1MzUxMDQwMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
